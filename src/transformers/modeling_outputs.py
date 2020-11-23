@@ -598,6 +598,8 @@ class SequenceClassifierOutput(ModelOutput):
     logits: torch.FloatTensor = None
     hidden_states: Optional[Tuple[torch.FloatTensor]] = None
     attentions: Optional[Tuple[torch.FloatTensor]] = None
+    #uncertainty: Optional[torch.FloatTensor] = None
+    uncertainty: torch.FloatTensor = None
 
 
 @dataclass
