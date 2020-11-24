@@ -1374,6 +1374,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         kl_alpha = (alpha - 1) * (1 - y) + 1
         kl_div = annealing_coef * self.kl_divergence(kl_alpha, self.num_labels)
         return loglikelihood + kl_div
+        #return loglikelihood
 
     def edl_loss(self, func, y, alpha, epoch_num, num_classes, annealing_step, device=None):
         device = self.get_device()
@@ -1431,11 +1432,11 @@ class BertForSequenceClassification(BertPreTrainedModel):
         #if not device:
         #device = self.get_device()
         if (evidence_name == 'relu'):
-            evidence = self.relu_evidence(output)
+            evidence = self.relu_evidence(logits)
         elif (evidence_name == 'exp'):
-            evidence = self.exp_evidence(output)
+            evidence = self.exp_evidence(logits)
         elif (evidence_name == 'softplus'):
-            evidence = self.softplus_evidence(output)
+            evidence = self.softplus_evidence(logits)
         else:
             evidence=None
 
