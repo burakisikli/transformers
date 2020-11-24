@@ -1558,10 +1558,11 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
         return SequenceClassifierOutput(
             loss=loss,
-            logits=prob, #logits,
+            logits=logits,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
-            uncertainty=u
+            uncertainty=u,
+            prob=prob,
         )
 
 

@@ -600,6 +600,7 @@ class SequenceClassifierOutput(ModelOutput):
     attentions: Optional[Tuple[torch.FloatTensor]] = None
     #uncertainty: Optional[torch.FloatTensor] = None
     uncertainty: torch.FloatTensor = None
+    prob: Optional[torch.FloatTensor] = None
 
 
 @dataclass
