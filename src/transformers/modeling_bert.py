@@ -1443,7 +1443,8 @@ class BertForSequenceClassification(BertPreTrainedModel):
         #evidence = self.softplus_evidence(logits)
         alpha = evidence + 1
         loss = torch.mean(self.mse_loss(target, alpha, epoch_num, annealing_step, self.num_labels))
-        return loss
+        prob = alpha/torch.sum(alpha, dim=1, keepdim=True) 
+        return loss, prob
 
     
     def get_uncertainty(self, logits, evidence_name):
