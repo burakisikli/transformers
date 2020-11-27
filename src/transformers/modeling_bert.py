@@ -1323,7 +1323,8 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
 
     def exp_evidence(self, y):
-        return torch.exp(torch.clamp(y, -10, 10))
+        return torch.exp(torch.clamp(y, -150, 150))
+        #return torch.exp(y/1000)
 
 
     def softplus_evidence(self, y):
@@ -1536,9 +1537,9 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 elif(loss_name == 'edl_digamma_loss'):
                     loss = self.edl_digamma_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name)
                 else:
-                    #loss_fct = CrossEntropyLoss()
-                    #loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
-                    loss=None
+                    loss_fct = CrossEntropyLoss()
+                    loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                    #loss=None
 
                 #loss_fct = CrossEntropyLoss()
                 #loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
@@ -1548,7 +1549,8 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 #loss = self.custom_loss(logits, labels)
 
         u = None
-        if labels is None:
+        prob=None
+        if labels is None and loss_name!='crossentropy':
             #u = self.get_uncertainty(logits.view(-1, self.num_labels), labels.view(-1))
             u, prob = self.get_uncertainty(logits.view(-1, self.num_labels), evidence_name)
 
