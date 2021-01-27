@@ -603,7 +603,7 @@ class DistilBertForSequenceClassification(DistilBertPreTrainedModel):
         config_class=_CONFIG_FOR_DOC,
     )
 
-       def get_device(self):
+    def get_device(self):
         #use_cuda = torch.cuda.is_available()
         #device = torch.device("cuda:0" if use_cuda else "cpu")
         return torch.device("cuda")
