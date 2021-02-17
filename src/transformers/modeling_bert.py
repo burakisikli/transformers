@@ -1495,9 +1495,9 @@ class BertForSequenceClassification(BertPreTrainedModel):
         return_dict=None,
         epoch_num=None,
         annealing_step=None,
+        kl_reducer=None,
         loss_name=None,
         evidence_name=None,
-        kl_reducer=None,
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
