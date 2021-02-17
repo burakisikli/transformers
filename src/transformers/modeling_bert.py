@@ -1374,7 +1374,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
         kl_alpha = (alpha - 1) * (1 - y) + 1
         kl_div = annealing_coef * self.kl_divergence(kl_alpha, self.num_labels)
-        print(kl_reducer)
+        #print(kl_reducer)
         return loglikelihood + (kl_reducer * kl_div)
 
     def edl_loss(self, func, y, alpha, epoch_num, num_classes, annealing_step, kl_coef, device=None):
@@ -1532,6 +1532,9 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 loss = loss_fct(logits.view(-1), labels.view(-1))
             else:
                 if(loss_name == 'mse_loss'):
+                    print(kl_reducer)
+                    print(epoch_num)
+                    print(annealing_step)
                     loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
                 elif(loss_name == 'edl_log_loss'):
                     loss = self.edl_log_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
