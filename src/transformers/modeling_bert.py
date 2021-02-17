@@ -1533,8 +1533,8 @@ class BertForSequenceClassification(BertPreTrainedModel):
             else:
                 if(loss_name == 'mse_loss'):
                     print(kl_reducer)
-                    print(epoch_num)
-                    print(annealing_step)
+                    #print(epoch_num)
+                    #print(annealing_step)
                     loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
                 elif(loss_name == 'edl_log_loss'):
                     loss = self.edl_log_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
