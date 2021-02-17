@@ -1374,6 +1374,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
         kl_alpha = (alpha - 1) * (1 - y) + 1
         kl_div = annealing_coef * self.kl_divergence(kl_alpha, self.num_labels)
+        print(kl_reducer * kl_div)
         return loglikelihood + (kl_reducer * kl_div)
 
     def edl_loss(self, func, y, alpha, epoch_num, num_classes, annealing_step, kl_coef, device=None):
