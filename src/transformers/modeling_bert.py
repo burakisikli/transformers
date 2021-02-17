@@ -1532,7 +1532,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 loss = loss_fct(logits.view(-1), labels.view(-1))
             else:
                 if(loss_name == 'mse_loss'):
-                    print(kl_reducer)
+                    #print(kl_reducer)
                     #print(epoch_num)
                     #print(annealing_step)
                     loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
