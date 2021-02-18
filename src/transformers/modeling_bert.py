@@ -1443,7 +1443,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
         #evidence = self.softplus_evidence(logits)
         alpha = evidence + 1
-        loss = torch.mean(self.mse_loss(target, alpha, epoch_num, annealing_step, self.num_labels, kl_reducer))
+        loss = torch.mean(self.mse_loss(target, alpha, epoch_num, annealing_step, kl_reducer))
         return loss
 
     
