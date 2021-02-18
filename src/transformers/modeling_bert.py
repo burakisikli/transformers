@@ -1360,7 +1360,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         return loglikelihood
 
 
-    def mse_loss(self, y, alpha, epoch_num, annealing_step, kl_reducer, device=None):
+    def mse_loss(self, y, alpha, epoch_num, annealing_step, kl_coef, device=None):
         #if not device:
         device = self.get_device()
         y = y.to(device)
@@ -1370,12 +1370,10 @@ class BertForSequenceClassification(BertPreTrainedModel):
         #annealing_step = 10*32
         annealing_coef = torch.min(torch.tensor(
             1.0, dtype=torch.float32), torch.tensor(epoch_num / annealing_step, dtype=torch.float32))
-        #annealing_coef = 1.0
 
         kl_alpha = (alpha - 1) * (1 - y) + 1
         kl_div = annealing_coef * self.kl_divergence(kl_alpha, self.num_labels)
-        #print(kl_reducer)
-        return loglikelihood + (kl_reducer * kl_div)
+        return loglikelihood + (kl_coef * kl_div)
 
     def edl_loss(self, func, y, alpha, epoch_num, num_classes, annealing_step, kl_coef, device=None):
         device = self.get_device()
@@ -1429,7 +1427,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
                                    epoch_num, self.num_labels, annealing_step, kl_coef))
         return loss
 
-    def custom_loss(self, logits, target, epoch_num, annealing_step, evidence_name, kl_reducer, device=None):
+    def custom_loss(self, logits, target, epoch_num, annealing_step, evidence_name, kl_coef, device=None):
         #if not device:
         #device = self.get_device()
         if (evidence_name == 'relu'):
@@ -1443,7 +1441,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
 
         #evidence = self.softplus_evidence(logits)
         alpha = evidence + 1
-        loss = torch.mean(self.mse_loss(target, alpha, epoch_num, annealing_step, kl_reducer))
+        loss = torch.mean(self.mse_loss(target, alpha, epoch_num, annealing_step, kl_coef))
         return loss
 
     
@@ -1495,7 +1493,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         return_dict=None,
         epoch_num=None,
         annealing_step=None,
-        kl_reducer=None,
+        kl_coef=None,
         loss_name=None,
         evidence_name=None,
     ):
@@ -1532,14 +1530,11 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 loss = loss_fct(logits.view(-1), labels.view(-1))
             else:
                 if(loss_name == 'mse_loss'):
-                    #print(kl_reducer)
-                    #print(epoch_num)
-                    #print(annealing_step)
-                    loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
+                    loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
                 elif(loss_name == 'edl_log_loss'):
-                    loss = self.edl_log_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
+                    loss = self.edl_log_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
                 elif(loss_name == 'edl_digamma_loss'):
-                    loss = self.edl_digamma_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_reducer)
+                    loss = self.edl_digamma_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
                 else:
                     loss_fct = CrossEntropyLoss()
                     loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
