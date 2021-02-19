@@ -613,7 +613,7 @@ class DistilBertForSequenceClassification(DistilBertPreTrainedModel):
 
 
     def exp_evidence(self, y):
-        return torch.exp(torch.clamp(y, -150, 150))
+        return torch.exp(torch.clamp(y, -10, 10))
         #return torch.exp(y/1000)
 
 
