@@ -1136,6 +1136,11 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
         output_attentions=None,
         output_hidden_states=None,
         return_dict=None,
+        epoch_num=None,
+        annealing_step=None,
+        kl_coef=None,
+        loss_name=None,
+        evidence_name=None,
     ):
         r"""
         labels (:obj:`torch.LongTensor` of shape :obj:`(batch_size,)`, `optional`):
