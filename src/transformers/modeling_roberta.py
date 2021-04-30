@@ -975,6 +975,155 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
         output_type=SequenceClassifierOutput,
         config_class=_CONFIG_FOR_DOC,
     )
+
+    def get_device(self):
+        #use_cuda = torch.cuda.is_available()
+        #device = torch.device("cuda:0" if use_cuda else "cpu")
+        return torch.device("cuda")
+
+    def relu_evidence(self, y):
+        return F.relu(y)
+
+
+    def exp_evidence(self, y):
+        return torch.exp(torch.clamp(y, -150, 150))
+        #return torch.exp(y/1000)
+
+
+    def softplus_evidence(self, y):
+        return F.softplus(y)
+
+    def kl_divergence(self, alpha, device=None):
+        #if not device:
+        device = self.get_device()
+        beta = torch.ones([1, self.num_labels], dtype=torch.float32, device=device)
+        S_alpha = torch.sum(alpha, dim=1, keepdim=True)
+        S_beta = torch.sum(beta, dim=1, keepdim=True)
+        lnB = torch.lgamma(S_alpha) - \
+            torch.sum(torch.lgamma(alpha), dim=1, keepdim=True)
+        lnB_uni = torch.sum(torch.lgamma(beta), dim=1,
+                            keepdim=True) - torch.lgamma(S_beta)
+
+        dg0 = torch.digamma(S_alpha)
+        dg1 = torch.digamma(alpha)
+
+        kl = torch.sum((alpha - beta) * (dg1 - dg0), dim=1,
+                       keepdim=True) + lnB + lnB_uni
+        return kl
+
+    def loglikelihood_loss(self, y, alpha, device=None):
+        #if not device:
+        device = self.get_device()
+        y = y.to(device)
+        alpha = alpha.to(device)
+        S = torch.sum(alpha, dim=1, keepdim=True)
+        loglikelihood_err = torch.sum((y - (alpha / S)) ** 2, dim=1, keepdim=True)
+        loglikelihood_var = torch.sum(alpha * (S - alpha) / (S * S * (S + 1)), dim=1, keepdim=True)
+        loglikelihood = loglikelihood_err + loglikelihood_var
+        return loglikelihood
+
+
+    def mse_loss(self, y, alpha, epoch_num, annealing_step, kl_coef, device=None):
+        #if not device:
+        device = self.get_device()
+        y = y.to(device)
+        alpha = alpha.to(device)
+        loglikelihood = self.loglikelihood_loss(y, alpha)
+
+        #annealing_step = 10*32
+        annealing_coef = torch.min(torch.tensor(
+            1.0, dtype=torch.float32), torch.tensor(epoch_num / annealing_step, dtype=torch.float32))
+
+        kl_alpha = (alpha - 1) * (1 - y) + 1
+        kl_div = annealing_coef * self.kl_divergence(kl_alpha, self.num_labels)
+        return loglikelihood + (kl_coef * kl_div)
+
+    def edl_loss(self, func, y, alpha, epoch_num, num_classes, annealing_step, kl_coef, device=None):
+        device = self.get_device()
+        y = y.to(device)
+        alpha = alpha.to(device)
+        S = torch.sum(alpha, dim=1, keepdim=True)
+
+        A = torch.sum(y * (func(S) - func(alpha)), dim=1, keepdim=True)
+
+        annealing_coef = torch.min(torch.tensor(
+            1.0, dtype=torch.float32), torch.tensor(epoch_num / annealing_step, dtype=torch.float32))
+
+        kl_alpha = (alpha - 1) * (1 - y) + 1
+        kl_div = annealing_coef * \
+            self.kl_divergence(kl_alpha, num_classes)
+        return A + (kl_coef*kl_div)
+
+    def edl_log_loss(self, output, target, epoch_num, annealing_step, evidence_name, kl_coef, device=None):
+        #if not device:
+        if (evidence_name == 'relu'):
+            evidence = self.relu_evidence(output)
+        elif (evidence_name == 'exp'):
+            evidence = self.exp_evidence(output)
+        elif (evidence_name == 'softplus'):
+            evidence = self.softplus_evidence(output)
+        else:
+            evidence=None
+
+        device = self.get_device()
+        #evidence = self.relu_evidence(output)
+        alpha = evidence + 1
+        loss = torch.mean(self.edl_loss(torch.log, target, alpha,
+                                   epoch_num, self.num_labels, annealing_step, kl_coef))
+        return loss
+
+    def edl_digamma_loss(self, output, target, epoch_num, annealing_step, evidence_name, kl_coef, device=None):
+        #if not device:
+        device = self.get_device()
+        #evidence = self.relu_evidence(output)
+        if (evidence_name == 'relu'):
+            evidence = self.relu_evidence(output)
+        elif (evidence_name == 'exp'):
+            evidence = self.exp_evidence(output)
+        elif (evidence_name == 'softplus'):
+            evidence = self.softplus_evidence(output)
+        else:
+            evidence=None
+
+        alpha = evidence + 1
+        loss = torch.mean(self.edl_loss(torch.digamma, target, alpha,
+                                   epoch_num, self.num_labels, annealing_step, kl_coef))
+        return loss
+
+    def custom_loss(self, logits, target, epoch_num, annealing_step, evidence_name, kl_coef, device=None):
+        #if not device:
+        #device = self.get_device()
+        if (evidence_name == 'relu'):
+            evidence = self.relu_evidence(logits)
+        elif (evidence_name == 'exp'):
+            evidence = self.exp_evidence(logits)
+        elif (evidence_name == 'softplus'):
+            evidence = self.softplus_evidence(logits)
+        else:
+            evidence=None
+
+        #evidence = self.softplus_evidence(logits)
+        alpha = evidence + 1
+        loss = torch.mean(self.mse_loss(target, alpha, epoch_num, annealing_step, kl_coef))
+        return loss
+
+    
+    def get_uncertainty(self, logits, evidence_name):
+        if (evidence_name == 'relu'):
+            evidence = self.relu_evidence(logits)
+        elif (evidence_name == 'exp'):
+            evidence = self.exp_evidence(logits)
+        elif (evidence_name == 'softplus'):
+            evidence = self.softplus_evidence(logits)
+        else:
+            evidence=None
+
+        #evidence = self.relu_evidence(logits)
+        alpha = evidence + 1
+        u = self.num_labels / torch.sum(alpha, dim=1, keepdim=True)
+        prob = alpha/torch.sum(alpha, dim=1, keepdim=True) 
+        return u, prob
+
     def forward(
         self,
         input_ids=None,
@@ -1017,8 +1166,32 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
                 loss_fct = MSELoss()
                 loss = loss_fct(logits.view(-1), labels.view(-1))
             else:
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                if(loss_name == 'mse_loss'):
+                    loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
+                elif(loss_name == 'edl_log_loss'):
+                    loss = self.edl_log_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
+                elif(loss_name == 'edl_digamma_loss'):
+                    loss = self.edl_digamma_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
+                else:
+                    loss_fct = CrossEntropyLoss()
+                    loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                    #loss=None
+        #loss = None
+        #if labels is not None:
+        #    if self.num_labels == 1:
+                #  We are doing regression
+        #        loss_fct = MSELoss()
+        #        loss = loss_fct(logits.view(-1), labels.view(-1))
+        #    else:
+        #        loss_fct = CrossEntropyLoss()
+        #        loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+
+        u = None
+        prob=None
+        if labels is None and loss_name!='crossentropy':
+            #u = self.get_uncertainty(logits.view(-1, self.num_labels), labels.view(-1))
+            u, prob = self.get_uncertainty(logits.view(-1, self.num_labels), evidence_name)
+
 
         if not return_dict:
             output = (logits,) + outputs[2:]
@@ -1029,6 +1202,8 @@ class RobertaForSequenceClassification(RobertaPreTrainedModel):
             logits=logits,
             hidden_states=outputs.hidden_states,
             attentions=outputs.attentions,
+            uncertainty=u,
+            prob=prob,
         )
 
 
