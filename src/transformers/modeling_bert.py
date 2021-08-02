@@ -1536,7 +1536,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
                     loss = self.edl_log_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
                 elif(loss_name == 'edl_digamma_loss'):
                     loss = self.edl_digamma_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
-                elif(loss_name = 'crossentropy'):
+                elif(loss_name == 'crossentropy'):
                     loss_fct = CrossEntropyLoss()
                     loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
                 else:
