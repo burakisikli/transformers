@@ -1528,6 +1528,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 #  We are doing regression
                 loss_fct = MSELoss()
                 loss = loss_fct(logits.view(-1), labels.view(-1))
+                raise Exception('num label==1 !')
             else:
                 if(loss_name == 'mse_loss'):
                     loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
@@ -1535,10 +1536,14 @@ class BertForSequenceClassification(BertPreTrainedModel):
                     loss = self.edl_log_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
                 elif(loss_name == 'edl_digamma_loss'):
                     loss = self.edl_digamma_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
-                else:
+                elif(loss_name = 'crossentropy'):
                     loss_fct = CrossEntropyLoss()
                     loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+                else:
+                    #loss_fct = CrossEntropyLoss()
+                    #loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
                     #loss=None
+                    raise Exception('No loss')
 
                 #loss_fct = CrossEntropyLoss()
                 #loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
