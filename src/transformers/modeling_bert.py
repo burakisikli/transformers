@@ -1525,7 +1525,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
         loss = None
         if labels is not None:
             if self.num_labels == 1:
-                #  We are doing regression
+                #  We are doing regression 
                 loss_fct = MSELoss()
                 loss = loss_fct(logits.view(-1), labels.view(-1))
                 raise Exception('num label==1 !')
