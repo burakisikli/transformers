@@ -1528,7 +1528,7 @@ class BertForSequenceClassification(BertPreTrainedModel):
                 #  We are doing regression 
                 loss_fct = MSELoss()
                 loss = loss_fct(logits.view(-1), labels.view(-1))
-                raise Exception('num label==1 !')
+                #raise Exception('num label==1 !')
             else:
                 if(loss_name == 'mse_loss'):
                     loss = self.custom_loss(logits.view(-1, self.num_labels), labels, epoch_num, annealing_step, evidence_name, kl_coef)
